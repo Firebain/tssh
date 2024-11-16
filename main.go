@@ -2,11 +2,17 @@ package main
 
 import (
 	"fmt"
+	_ "image/png"
+	"io"
+	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/Firebain/tssh/lists"
+	"github.com/keybase/go-keychain"
+	"github.com/pquerna/otp/totp"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,21 +34,82 @@ type ServersLoadedMsg struct {
 	servers *ServersInfo
 }
 
-type UserSelectedMsg struct {
-}
+type UserSelectedMsg struct{}
 
 func RunLoginCmd() tea.Cmd {
+	query := keychain.NewItem()
+	query.SetSecClass(keychain.SecClassGenericPassword)
+	query.SetService("tssh")
+	query.SetAccount("tssh")
+	query.SetMatchLimit(keychain.MatchLimitOne)
+	query.SetReturnData(true)
+	results, err := keychain.QueryItem(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	c := exec.Command("tsh", "login")
 
-	return tea.ExecProcess(c, func(err error) tea.Msg {
+	if len(results) < 1 {
+		return tea.ExecProcess(c, func(err error) tea.Msg {
+			if err != nil {
+				return errorMsg{err}
+			}
+
+			cr := client.LoadProfile("", "")
+
+			return LoginSuccess{cr}
+		})
+	} else {
+		auth := strings.Split(string(results[0].Data), "\n")
+
+		stdin, err := c.StdinPipe()
 		if err != nil {
-			return errorMsg{err}
+			return ErrorMsg(err)
+		}
+		defer stdin.Close()
+
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+
+		err = c.Start()
+		if err != nil {
+			return ErrorMsg(err)
+		}
+
+		_, err = io.WriteString(stdin, auth[0]+"\n")
+		if err != nil {
+			c.Cancel()
+			c.Wait()
+
+			return ErrorMsg(err)
+		}
+
+		code, err := totp.GenerateCode(auth[1], time.Now())
+		if err != nil {
+			c.Cancel()
+			c.Wait()
+
+			return ErrorMsg(err)
+		}
+
+		_, err = io.WriteString(stdin, code+"\n")
+		if err != nil {
+			c.Cancel()
+			c.Wait()
+
+			return ErrorMsg(err)
+		}
+
+		err = c.Wait()
+		if err != nil {
+			return ErrorMsg(err)
 		}
 
 		cr := client.LoadProfile("", "")
 
-		return LoginSuccess{cr}
-	})
+		return func() tea.Msg { return LoginSuccess{cr} }
+	}
 }
 
 func RunConnectCmd(user string, hostname string) tea.Cmd {
@@ -254,6 +321,35 @@ func (m AppModel) View() string {
 }
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "login" {
+		m := InitLoginModel()
+		p := tea.NewProgram(m)
+		_, err := p.Run()
+		if err != nil {
+			fmt.Println("Error running program:", err)
+
+			os.Exit(1)
+		}
+
+		return
+	}
+
+	if len(os.Args) == 3 && os.Args[1] == "login" && os.Args[2] == "forget" {
+		item := keychain.NewItem()
+		item.SetSecClass(keychain.SecClassGenericPassword)
+		item.SetService("tssh")
+		item.SetAccount("tssh")
+		err := keychain.DeleteItem(item)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Deleted")
+
+		return
+	}
+
 	m := InitAppModel()
 	p := tea.NewProgram(m)
 	_, err := p.Run()

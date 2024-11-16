@@ -11,17 +11,10 @@
 - [Teleport CLI](https://goteleport.com/docs/installation/)
 - [Golang](https://go.dev/dl/)
 
-### Clone the Repository
-
-```sh
-git clone https://github.com/Firebain/tssh
-cd tssh
-```
-
 ### Install Binary
 
 ```sh
-go install
+go install github.com/Firebain/tssh
 ```
 
 ## Usage

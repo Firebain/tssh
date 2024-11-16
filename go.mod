@@ -7,6 +7,9 @@ require (
 	github.com/charmbracelet/bubbletea v1.0.1
 	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/gravitational/teleport/api v0.0.0-20240829204426-0c8d9474d3de
+	github.com/keybase/go-keychain v0.0.0-20231219164618-57a3676c3af6
+	github.com/makiuchi-d/gozxing v0.1.1
+	github.com/pquerna/otp v1.4.0
 	github.com/sahilm/fuzzy v0.1.1
 )
 
@@ -14,6 +17,7 @@ require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/beevik/etree v1.3.0 // indirect
+	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/charmbracelet/x/ansi v0.1.4 // indirect
 	github.com/charmbracelet/x/input v0.1.0 // indirect
@@ -62,6 +66,7 @@ require (
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/term v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
