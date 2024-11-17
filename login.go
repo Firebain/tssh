@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"image"
-	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -12,7 +12,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/keybase/go-keychain"
 	"github.com/makiuchi-d/gozxing"
 	"github.com/makiuchi-d/gozxing/qrcode"
 	"github.com/pquerna/otp/totp"
@@ -65,6 +64,14 @@ func (m LoginModel) Init() tea.Cmd {
 }
 
 func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	err, isErr := msg.(errorMsg)
+	if isErr {
+		return m, tea.Sequence(
+			tea.Println(err.err),
+			tea.Quit,
+		)
+	}
+
 	if m.stage == "edit" {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -91,40 +98,40 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if strings.HasPrefix(secret, "data:image/png;base64,") {
 						imageRaw, err := base64.StdEncoding.DecodeString(secret[22:])
 						if err != nil {
-							log.Fatal(err)
+							return m, ErrorMsg(err)
 						}
 
 						image, _, err := image.Decode(bytes.NewReader(imageRaw))
 						if err != nil {
-							log.Fatal(err)
+							return m, ErrorMsg(err)
 						}
 
 						bmp, err := gozxing.NewBinaryBitmapFromImage(image)
 						if err != nil {
-							log.Fatal(err)
+							return m, ErrorMsg(err)
 						}
 
 						qrReader := qrcode.NewQRCodeReader()
 						result, err := qrReader.Decode(bmp, nil)
 						if err != nil {
-							log.Fatal(err)
+							return m, ErrorMsg(err)
 						}
 
 						otpauth, err := url.Parse(result.GetText())
 						if err != nil {
-							log.Fatal(err)
+							return m, ErrorMsg(err)
 						}
 
 						secret = otpauth.Query().Get("secret")
 					}
 
 					if len(secret) == 0 {
-						log.Fatal("No secret in url")
+						return m, ErrorMsg(errors.New("no secret in url"))
 					}
 
 					code, err := totp.GenerateCode(secret, time.Now())
 					if err != nil {
-						log.Fatal(err)
+						return m, ErrorMsg(err)
 					}
 
 					m.secret = secret
@@ -133,7 +140,6 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 
-				// Cycle indexes
 				if s == "up" || s == "shift+tab" {
 					m.focusIndex--
 				} else {
@@ -196,24 +202,19 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "r":
 				code, err := totp.GenerateCode(m.secret, time.Now())
 				if err != nil {
-					log.Fatal(err)
+					return m, ErrorMsg(err)
 				}
 
 				m.code = code
 
 				return m, nil
 			case "enter":
-				item := keychain.NewItem()
-				item.SetSecClass(keychain.SecClassGenericPassword)
-				item.SetService("tssh")
-				item.SetAccount("tssh")
-				item.SetLabel("Teleport Login for tssh")
-				item.SetData([]byte(m.passwordInput.Value() + "\n" + m.secret))
-				item.SetSynchronizable(keychain.SynchronizableNo)
-				item.SetAccessible(keychain.AccessibleWhenUnlockedThisDeviceOnly)
-				err := keychain.AddItem(item)
+				err := StoreAuth(Auth{
+					password: m.passwordInput.Value(),
+					secret:   m.secret,
+				})
 				if err != nil {
-					log.Fatal(err)
+					return m, ErrorMsg(err)
 				}
 
 				m.stage = "success"

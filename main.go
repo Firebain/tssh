@@ -4,14 +4,12 @@ import (
 	"fmt"
 	_ "image/png"
 	"io"
-	"log"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/Firebain/tssh/lists"
-	"github.com/keybase/go-keychain"
+	"github.com/creack/pty"
 	"github.com/pquerna/otp/totp"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -37,20 +35,14 @@ type ServersLoadedMsg struct {
 type UserSelectedMsg struct{}
 
 func RunLoginCmd() tea.Cmd {
-	query := keychain.NewItem()
-	query.SetSecClass(keychain.SecClassGenericPassword)
-	query.SetService("tssh")
-	query.SetAccount("tssh")
-	query.SetMatchLimit(keychain.MatchLimitOne)
-	query.SetReturnData(true)
-	results, err := keychain.QueryItem(query)
+	auth, err := GetAuth()
 	if err != nil {
-		log.Fatal(err)
+		return ErrorMsg(err)
 	}
 
 	c := exec.Command("tsh", "login")
 
-	if len(results) < 1 {
+	if auth == nil {
 		return tea.ExecProcess(c, func(err error) tea.Msg {
 			if err != nil {
 				return errorMsg{err}
@@ -61,50 +53,28 @@ func RunLoginCmd() tea.Cmd {
 			return LoginSuccess{cr}
 		})
 	} else {
-		auth := strings.Split(string(results[0].Data), "\n")
-
-		stdin, err := c.StdinPipe()
+		f, err := pty.Start(c)
 		if err != nil {
 			return ErrorMsg(err)
 		}
-		defer stdin.Close()
+		defer f.Close()
 
-		c.Stdout = os.Stdout
-		c.Stderr = os.Stderr
-
-		err = c.Start()
+		_, err = io.WriteString(f, auth.password+"\n")
 		if err != nil {
 			return ErrorMsg(err)
 		}
 
-		_, err = io.WriteString(stdin, auth[0]+"\n")
-		if err != nil {
-			c.Cancel()
-			c.Wait()
-
-			return ErrorMsg(err)
-		}
-
-		code, err := totp.GenerateCode(auth[1], time.Now())
-		if err != nil {
-			c.Cancel()
-			c.Wait()
-
-			return ErrorMsg(err)
-		}
-
-		_, err = io.WriteString(stdin, code+"\n")
-		if err != nil {
-			c.Cancel()
-			c.Wait()
-
-			return ErrorMsg(err)
-		}
-
-		err = c.Wait()
+		code, err := totp.GenerateCode(auth.secret, time.Now())
 		if err != nil {
 			return ErrorMsg(err)
 		}
+
+		_, err = io.WriteString(f, code+"\n")
+		if err != nil {
+			return ErrorMsg(err)
+		}
+
+		io.Copy(io.Discard, f)
 
 		cr := client.LoadProfile("", "")
 
@@ -327,7 +297,6 @@ func main() {
 		_, err := p.Run()
 		if err != nil {
 			fmt.Println("Error running program:", err)
-
 			os.Exit(1)
 		}
 
@@ -335,14 +304,11 @@ func main() {
 	}
 
 	if len(os.Args) == 3 && os.Args[1] == "login" && os.Args[2] == "forget" {
-		item := keychain.NewItem()
-		item.SetSecClass(keychain.SecClassGenericPassword)
-		item.SetService("tssh")
-		item.SetAccount("tssh")
-		err := keychain.DeleteItem(item)
+		err := DeleteAuth()
 
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
 		}
 
 		fmt.Println("Deleted")
