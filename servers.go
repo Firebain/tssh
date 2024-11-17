@@ -83,7 +83,7 @@ func FetchServersInfo(cr client.Credentials) (*ServersInfo, error) {
 	}, nil
 }
 
-func getCachePath() (string, error) {
+func GetCachePath() (string, error) {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		return "", err
@@ -101,7 +101,7 @@ func getCachePath() (string, error) {
 }
 
 func GetServersInfoFromCache() (*ServersInfo, error) {
-	filepath, err := getCachePath()
+	filepath, err := GetCachePath()
 	if err != nil {
 		return nil, err
 	}
@@ -126,10 +126,19 @@ func StoreServersInfo(info *ServersInfo) error {
 		return err
 	}
 
-	filepath, err := getCachePath()
+	filepath, err := GetCachePath()
 	if err != nil {
 		return err
 	}
 
 	return os.WriteFile(filepath, data, 0644)
+}
+
+func DeleteServersInto() error {
+	filepath, err := GetCachePath()
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(filepath)
 }

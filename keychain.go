@@ -1,23 +1,28 @@
 package main
 
 import (
-	"strings"
+	"encoding/json"
 
 	"github.com/keybase/go-keychain"
 )
 
 type Auth struct {
-	password string
-	secret   string
+	Password string `json:"password"`
+	Secret   string `json:"secret"`
 }
 
 func StoreAuth(auth Auth) error {
+	data, err := json.Marshal(auth)
+	if err != nil {
+		return err
+	}
+
 	item := keychain.NewItem()
 	item.SetSecClass(keychain.SecClassGenericPassword)
 	item.SetService("tssh")
 	item.SetAccount("tssh")
 	item.SetLabel("Teleport Login for tssh")
-	item.SetData([]byte(auth.password + "\n" + auth.secret))
+	item.SetData(data)
 	item.SetSynchronizable(keychain.SynchronizableNo)
 	item.SetAccessible(keychain.AccessibleWhenUnlockedThisDeviceOnly)
 
@@ -39,12 +44,14 @@ func GetAuth() (*Auth, error) {
 	if len(results) < 1 {
 		return nil, nil
 	} else {
-		auth := strings.Split(string(results[0].Data), "\n")
+		auth := &Auth{}
 
-		return &Auth{
-			password: auth[0],
-			secret:   auth[1],
-		}, nil
+		err := json.Unmarshal(results[0].Data, auth)
+		if err != nil {
+			return nil, err
+		}
+
+		return auth, nil
 	}
 }
 

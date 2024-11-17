@@ -59,12 +59,12 @@ func RunLoginCmd() tea.Cmd {
 		}
 		defer f.Close()
 
-		_, err = io.WriteString(f, auth.password+"\n")
+		_, err = io.WriteString(f, auth.Password+"\n")
 		if err != nil {
 			return ErrorMsg(err)
 		}
 
-		code, err := totp.GenerateCode(auth.secret, time.Now())
+		code, err := totp.GenerateCode(auth.Secret, time.Now())
 		if err != nil {
 			return ErrorMsg(err)
 		}
@@ -303,7 +303,7 @@ func main() {
 		return
 	}
 
-	if len(os.Args) == 3 && os.Args[1] == "logout" {
+	if len(os.Args) == 2 && os.Args[1] == "logout" {
 		err := DeleteAuth()
 
 		if err != nil {
@@ -312,6 +312,32 @@ func main() {
 		}
 
 		fmt.Println("Deleted")
+
+		return
+	}
+
+	if len(os.Args) == 3 && os.Args[1] == "cache" && os.Args[2] == "prune" {
+		err := DeleteServersInto()
+
+		if err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("Deleted")
+
+		return
+	}
+
+	if len(os.Args) == 3 && os.Args[1] == "cache" && os.Args[2] == "location" {
+		location, err := GetCachePath()
+
+		if err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(location)
 
 		return
 	}

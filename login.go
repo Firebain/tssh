@@ -210,8 +210,8 @@ func (m LoginModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case "enter":
 				err := StoreAuth(Auth{
-					password: m.passwordInput.Value(),
-					secret:   m.secret,
+					Password: m.passwordInput.Value(),
+					Secret:   m.secret,
 				})
 				if err != nil {
 					return m, ErrorMsg(err)
