@@ -90,9 +90,9 @@ Completely deletes the cache folder.
 tssh cache prune
 ```
 
-### Update server list
+### Update cached server list
 
-To update the server list while running `tssh`, press `ctrl+r`.
+To update cached server list while running `tssh`, press `ctrl+r`.
 
 ### Changing SSH User
 
