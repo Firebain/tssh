@@ -8,13 +8,22 @@
 
 ### Prerequisites
 
+- **MacOS** - For now, it only supports MacOS
 - [Teleport CLI](https://goteleport.com/docs/installation/)
 - [Golang](https://go.dev/dl/)
 
-### Install Binary
+### Install
 
 ```sh
 go install github.com/Firebain/tssh
+```
+
+### Uninstall
+
+```sh
+tssh cache prune
+
+rm $(which tssh)
 ```
 
 ## Usage
@@ -33,6 +42,50 @@ Simply run `tssh` by calling it in the console:
 
 ```sh
 tssh
+```
+
+#### Automatic Authorization
+
+`tssh` supports automatic authorization with password and OTP when your session is expired.
+
+##### Login
+
+To enable automatic authorization, use the following command:
+
+```sh
+tssh login
+```
+
+This command will prompt you for your password and OTP secret, and then store it in keychain.
+
+##### Logout
+
+To disable the automatic authorization feature, simply run:
+
+```sh
+tssh logout
+```
+
+This command will remove the password and OTP secret from keychain.
+
+#### Cache operations
+
+Under the hood, tssh uses a cache for the list of servers.
+
+##### Location
+
+Returns the path to the cache file.
+
+```sh
+tssh cache location
+```
+
+##### Prune
+
+Completely deletes the cache folder.
+
+```sh
+tssh cache prune
 ```
 
 ### Changing SSH User

@@ -83,21 +83,31 @@ func FetchServersInfo(cr client.Credentials) (*ServersInfo, error) {
 	}, nil
 }
 
-func GetCachePath() (string, error) {
+func GetCacheDir() (string, error) {
 	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		return "", err
 	}
 
-	folder := filepath.Join(cacheDir, "tssh")
-	err = os.MkdirAll(folder, os.ModeDir|0755)
+	return filepath.Join(cacheDir, "tssh"), nil
+}
+
+func GetCachePath() (string, error) {
+	cacheDir, err := GetCacheDir()
 	if err != nil {
 		return "", err
 	}
 
-	filePath := filepath.Join(folder, "servers.json")
+	return filepath.Join(cacheDir, "servers.json"), nil
+}
 
-	return filePath, nil
+func CreateCachePath() error {
+	cacheDir, err := GetCacheDir()
+	if err != nil {
+		return err
+	}
+
+	return os.MkdirAll(cacheDir, os.ModeDir|0755)
 }
 
 func GetServersInfoFromCache() (*ServersInfo, error) {
@@ -121,6 +131,11 @@ func GetServersInfoFromCache() (*ServersInfo, error) {
 }
 
 func StoreServersInfo(info *ServersInfo) error {
+	err := CreateCachePath()
+	if err != nil {
+		return err
+	}
+
 	data, err := json.Marshal(info)
 	if err != nil {
 		return err
@@ -135,10 +150,10 @@ func StoreServersInfo(info *ServersInfo) error {
 }
 
 func DeleteServersInto() error {
-	filepath, err := GetCachePath()
+	filepath, err := GetCacheDir()
 	if err != nil {
 		return err
 	}
 
-	return os.Remove(filepath)
+	return os.RemoveAll(filepath)
 }
