@@ -22,7 +22,9 @@ go install github.com/Firebain/tssh
 
 ```sh
 tssh cache prune
+```
 
+```sh
 rm $(which tssh)
 ```
 
