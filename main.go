@@ -303,7 +303,7 @@ func main() {
 		return
 	}
 
-	if len(os.Args) == 3 && os.Args[1] == "login" && os.Args[2] == "forget" {
+	if len(os.Args) == 3 && os.Args[1] == "logout" {
 		err := DeleteAuth()
 
 		if err != nil {
