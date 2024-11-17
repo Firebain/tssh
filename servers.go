@@ -13,8 +13,7 @@ import (
 )
 
 type Server struct {
-	Name   string            `json:"name"`
-	Labels map[string]string `json:"labels"`
+	Name string `json:"name"`
 }
 
 type ServersInfo struct {
@@ -65,9 +64,8 @@ func FetchServersInfo(cr client.Credentials) (*ServersInfo, error) {
 
 		for _, node := range res.Resources {
 			name := types.FriendlyName(node)
-			labels := node.GetStaticLabels()
 
-			servers = append(servers, Server{Name: name, Labels: labels})
+			servers = append(servers, Server{Name: name})
 		}
 
 		if res.NextKey == "" {

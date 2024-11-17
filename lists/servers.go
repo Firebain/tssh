@@ -38,18 +38,13 @@ func InitServersListModel() ServersListModel {
 }
 
 func (m ServersListModel) SetServers(servers []string) ServersListModel {
-	if m.panel == "filter" {
-		m.servers = servers
+	m.panel = "filter"
+	m.servers = servers
+	m.matchesIndex = 0
+	m.filterInput.Focus()
 
-		if m.filterInput.Value() != "" {
-			m.matches = fuzzy.Find(m.filterInput.Value(), m.servers)
-
-			if m.matchesIndex >= len(m.matches) {
-				m.matchesIndex = len(m.matches) - 1
-			}
-
-			return m
-		}
+	if m.filterInput.Value() != "" {
+		m.matches = fuzzy.Find(m.filterInput.Value(), m.servers)
 	}
 
 	return m

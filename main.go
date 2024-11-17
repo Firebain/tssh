@@ -150,6 +150,22 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
+		case "ctrl+r":
+			m.panel = "spiner"
+
+			return m, tea.Batch(
+				m.spinner.Tick,
+				func() tea.Msg {
+					info, err := FetchServersInfo(m.cr)
+					if err != nil {
+						return errorMsg{err}
+					}
+
+					info.DefaultLogin = m.info.DefaultLogin
+
+					return ServersLoadedMsg{info}
+				},
+			)
 		case "ctrl+u":
 			m.panel = "user"
 
