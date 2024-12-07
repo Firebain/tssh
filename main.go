@@ -308,9 +308,35 @@ func (m AppModel) View() string {
 
 func main() {
 	if len(os.Args) == 2 && os.Args[1] == "login" {
+		auth, err := GetAuth()
+		if err != nil {
+			fmt.Println("Error running program:", err)
+			os.Exit(1)
+		}
+
+		if auth != nil {
+			fmt.Println("Auth information found in keychain. Re-creating...")
+
+			err = DeleteAuth()
+
+			if err != nil {
+				fmt.Println("Error running program:", err)
+				os.Exit(1)
+			}
+
+			err = StoreAuth(*auth)
+
+			if err != nil {
+				fmt.Println("Error running program:", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("Success")
+		}
+
 		m := InitLoginModel()
 		p := tea.NewProgram(m)
-		_, err := p.Run()
+		_, err = p.Run()
 		if err != nil {
 			fmt.Println("Error running program:", err)
 			os.Exit(1)
