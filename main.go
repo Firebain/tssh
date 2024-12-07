@@ -332,6 +332,8 @@ func main() {
 			}
 
 			fmt.Println("Success")
+
+			os.Exit(1)
 		}
 
 		m := InitLoginModel()
