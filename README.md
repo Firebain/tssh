@@ -15,7 +15,7 @@
 ### Install
 
 ```sh
-go install github.com/Firebain/tssh
+go install github.com/Firebain/tssh@latest
 ```
 
 ### Uninstall
