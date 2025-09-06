@@ -12,14 +12,11 @@ import (
 	"github.com/gravitational/teleport/api/types"
 )
 
-type Server struct {
-	Name string `json:"name"`
-}
-
 type ServersInfo struct {
-	DefaultLogin string   `json:"default_login"`
-	Logins       []string `json:"logins"`
-	Servers      []Server `json:"servers"`
+	DefaultLogin        string     `json:"default_login"`
+	Logins              []string   `json:"logins"`
+	Servers             []string   `json:"servers"`
+	RecentlyUsedServers [10]string `json:"recently_used_servers"`
 }
 
 func FetchServersInfo(cr client.Credentials) (*ServersInfo, error) {
@@ -49,7 +46,7 @@ func FetchServersInfo(cr client.Credentials) (*ServersInfo, error) {
 		}
 	}
 
-	servers := make([]Server, 0)
+	servers := make([]string, 0)
 
 	req := proto.ListResourcesRequest{
 		ResourceType: types.KindNode,
@@ -65,7 +62,7 @@ func FetchServersInfo(cr client.Credentials) (*ServersInfo, error) {
 		for _, node := range res.Resources {
 			name := types.FriendlyName(node)
 
-			servers = append(servers, Server{Name: name})
+			servers = append(servers, name)
 		}
 
 		if res.NextKey == "" {

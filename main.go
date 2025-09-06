@@ -41,6 +41,9 @@ func RunLoginCmd() tea.Cmd {
 		return ErrorMsg(err)
 	}
 
+	// TODO: More fancy view for this
+	fmt.Println("Running 'tsh login'")
+
 	c := exec.Command("tsh", "login")
 
 	if auth == nil {
@@ -219,12 +222,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case CacheLoadedMsg:
 		m.info = msg.servers
 
-		names := []string{}
-		for _, server := range msg.servers.Servers {
-			names = append(names, server.Name)
-		}
-
-		m.serversList = m.serversList.SetServers(names)
+		m.serversList = m.serversList.SetServers(m.info.Servers, m.info.RecentlyUsedServers)
 		m.usersList = m.usersList.SetUsers(msg.servers.Logins)
 
 		if msg.servers.DefaultLogin == "" {
@@ -244,12 +242,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.info = msg.servers
 
-		names := []string{}
-		for _, server := range msg.servers.Servers {
-			names = append(names, server.Name)
-		}
-
-		m.serversList = m.serversList.SetServers(names)
+		m.serversList = m.serversList.SetServers(msg.servers.Servers, m.info.RecentlyUsedServers)
 		m.usersList = m.usersList.SetUsers(msg.servers.Logins)
 
 		if msg.servers.DefaultLogin == "" {
@@ -273,6 +266,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 	case lists.ServerSelectedMsg:
+		for i := len(m.info.RecentlyUsedServers) - 1; i > 0; i-- {
+			m.info.RecentlyUsedServers[i] = m.info.RecentlyUsedServers[i-1]
+		}
+		m.info.RecentlyUsedServers[0] = msg.Hostname
+
+		err := StoreServersInfo(m.info)
+		if err != nil {
+			return m, ErrorMsg(err)
+		}
+
 		return m, RunConnectCmd(m.info.DefaultLogin, msg.Hostname)
 	}
 

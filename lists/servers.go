@@ -1,6 +1,7 @@
 package lists
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -19,8 +20,9 @@ type ServersListModel struct {
 
 	matchesIndex int
 
-	servers []string
-	matches fuzzy.Matches
+	servers             []string
+	recentlyUsedServers [10]string
+	matches             fuzzy.Matches
 }
 
 func InitServersListModel() ServersListModel {
@@ -37,9 +39,10 @@ func InitServersListModel() ServersListModel {
 	}
 }
 
-func (m ServersListModel) SetServers(servers []string) ServersListModel {
+func (m ServersListModel) SetServers(servers []string, recentlyUsedServers [10]string) ServersListModel {
 	m.panel = "filter"
 	m.servers = servers
+	m.recentlyUsedServers = recentlyUsedServers
 	m.matchesIndex = 0
 	m.filterInput.Focus()
 
@@ -80,6 +83,18 @@ func (m ServersListModel) Update(msg tea.Msg) (ServersListModel, tea.Cmd) {
 
 		if m.filterInput.Value() != "" {
 			m.matches = fuzzy.Find(m.filterInput.Value(), m.servers)
+
+			for _, s := range slices.Backward(m.recentlyUsedServers[:]) {
+				index := slices.IndexFunc(m.matches, func(match fuzzy.Match) bool {
+					return match.Str == s
+				})
+
+				if index >= 0 {
+					for i := index; i > 0; i-- {
+						m.matches.Swap(i, i-1)
+					}
+				}
+			}
 		}
 
 		return m, cmd
@@ -93,7 +108,7 @@ func (m ServersListModel) Update(msg tea.Msg) (ServersListModel, tea.Cmd) {
 				if m.matchesIndex >= len(m.matches) {
 					m.matchesIndex = 0
 				}
-			case "up":
+			case "up", "shift+tab":
 				m.matchesIndex -= 1
 				if m.matchesIndex < 0 {
 					m.matchesIndex = len(m.matches) - 1
@@ -107,15 +122,6 @@ func (m ServersListModel) Update(msg tea.Msg) (ServersListModel, tea.Cmd) {
 	}
 
 	return m, nil
-}
-
-func contains(needle int, haystack []int) bool {
-	for _, i := range haystack {
-		if needle == i {
-			return true
-		}
-	}
-	return false
 }
 
 func (m ServersListModel) View() string {
@@ -140,7 +146,7 @@ func (m ServersListModel) View() string {
 					word := strings.Builder{}
 
 					for j := 0; j < len(match.Str); j++ {
-						if contains(j, match.MatchedIndexes) {
+						if slices.Contains(match.MatchedIndexes, j) {
 							word.WriteString(foundItemStyle.Render(string(match.Str[j])))
 						} else {
 							word.WriteString(normalItemStyle.Render(string(match.Str[j])))
@@ -179,7 +185,7 @@ func (m ServersListModel) View() string {
 			word := strings.Builder{}
 
 			for j := 0; j < len(match.Str); j++ {
-				if contains(j, match.MatchedIndexes) {
+				if slices.Contains(match.MatchedIndexes, j) {
 					word.WriteString(foundItemStyle.Render(string(match.Str[j])))
 				} else {
 					if m.matchesIndex == from+i {
