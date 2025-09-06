@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	_ "image/png"
 	"io"
@@ -59,9 +60,21 @@ func RunLoginCmd() tea.Cmd {
 		}
 		defer f.Close()
 
+		scanner := bufio.NewScanner(f)
+
+		s := scanner.Scan()
+		if !s {
+			return ErrorMsg(scanner.Err())
+		}
+
 		_, err = io.WriteString(f, auth.Password+"\n")
 		if err != nil {
 			return ErrorMsg(err)
+		}
+
+		s = scanner.Scan()
+		if !s {
+			return ErrorMsg(scanner.Err())
 		}
 
 		code, err := totp.GenerateCode(auth.Secret, time.Now())
